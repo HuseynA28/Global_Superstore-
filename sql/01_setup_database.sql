@@ -1,8 +1,8 @@
-IF DB_ID('GlobalSuperstore') IS NULL
-    CREATE DATABASE GlobalSuperstore;
+IF DB_ID('Datacube') IS NULL
+    CREATE DATABASE Datacube;
 GO
 
-USE GlobalSuperstore;
+USE Datacube;
 GO
 
 IF SCHEMA_ID('bronze') IS NULL EXEC('CREATE SCHEMA bronze');   -- raw data, exactly as received
