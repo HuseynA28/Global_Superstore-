@@ -5,30 +5,18 @@ services:
     restart: unless-stopped
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "DataEng#2026"     # 8+ characters with upper case, lower case, a number and a symbol
+      MSSQL_SA_PASSWORD: "DataEng#2026"     
       MSSQL_PID: "Developer"                # free edition with all features
     ports:
-      - "1433:1433"                         # your PC: 1433 → SQL Server in the container: 1433
+      - "1433:1433"                         # Codespace port 1433 → SQL Server 1433
     volumes:
       - mssql_data:/var/opt/mssql
-    healthcheck:                            # "healthy" = SQL Server is ready for connections
+    healthcheck:                            # "healthy" = ready for connections
       test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q \"SELECT 1\" -b -o /dev/null"]
       interval: 10s
       timeout: 5s
       retries: 20
       start_period: 20s
-
-  # Runs docker/init.sql ONCE when SQL Server is ready, then stops (that is normal).
-  # SQL Server does not run init scripts by itself like MySQL does.
-  sqlserver-init:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    depends_on:
-      sqlserver:
-        condition: service_healthy
-    volumes:
-      - ./docker/init.sql:/init.sql:ro
-    entrypoint: ["/opt/mssql-tools18/bin/sqlcmd", "-S", "sqlserver", "-U", "sa", "-P", "DataEng#2026", "-C", "-i", "/init.sql"]
-    restart: "no"
 
 volumes:
   mssql_data:
