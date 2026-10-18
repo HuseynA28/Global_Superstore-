@@ -1,28 +1,34 @@
-# Weather End-to-End Project
-# Start:  docker compose up -d sqlserver        (database only - use this while running the notebooks)
-#         docker compose up -d --build           (database + Streamlit app at http://localhost:8501)
-# Stop:   docker compose down                   (data is kept in the "sqlserver_data" volume)
-
 services:
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: weather_sqlserver
+    container_name: project_sqlserver
     restart: unless-stopped
-    platform: linux/amd64            # needed on Apple Silicon (M1/M2/M3) Macs
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "Weather_Pass123!"   # must be 8+ chars with upper, lower, digit, symbol
-      MSSQL_PID: "Developer"
+      MSSQL_SA_PASSWORD: "DataEng#2026"     # 8+ characters with upper case, lower case, a number and a symbol
+      MSSQL_PID: "Developer"                # free edition with all features
     ports:
-      - "1433:1433"
+      - "1433:1433"                         # your PC: 1433 → SQL Server in the container: 1433
     volumes:
-      - sqlserver_data:/var/opt/mssql
-    healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Weather_Pass123!' -C -Q 'SELECT 1' || exit 1"]
+      - mssql_data:/var/opt/mssql
+    healthcheck:                            # "healthy" = SQL Server is ready for connections
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q \"SELECT 1\" -b -o /dev/null"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 20
       start_period: 20s
 
+  # Runs docker/init.sql ONCE when SQL Server is ready, then stops (that is normal).
+  # SQL Server does not run init scripts by itself like MySQL does.
+  sqlserver-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    volumes:
+      - ./docker/init.sql:/init.sql:ro
+    entrypoint: ["/opt/mssql-tools18/bin/sqlcmd", "-S", "sqlserver", "-U", "sa", "-P", "DataEng#2026", "-C", "-i", "/init.sql"]
+    restart: "no"
+
 volumes:
-  sqlserver_data:
+  mssql_data:
